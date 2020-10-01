@@ -1,0 +1,193 @@
+---
+title: "Map Visualization"
+author: "Armando Saavedra"
+date: "3/23/2018"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+---
+
+
+```{css, echo=FALSE}
+.fluid.row.title{
+  font-size: 2.9vw
+}
+h1{
+  font-size:1.9vw;
+  margin-top: 30px!important;
+  margin-bottom: 15px!important;
+  padding-top: 0px!important;
+  padding-bottom: 0px!important;
+  font-weight: bold;
+  border-bottom: solid 1px black;
+}
+
+h2{
+  margin-top: 30px!important;
+  margin-bottom: 15px!important;
+  padding-top: 0px!important;
+  padding-bottom: 0px!important;
+  font-size: 22px;
+  font-weight: bold
+}
+p{
+  display: block;
+  margin-block-start: 1em;
+  margin-block-end: 1em;
+  margin-inline-start: 0px;
+  margin-inline-end: 0px;
+  
+}
+
+
+  
+
+```
+
+
+<style>
+.list-group-item.active, .list-group-item.active:focus, .list-group-item.active:hover {
+    background-color: black;
+}
+</style>
+
+# Introduction
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown
+
+# Requiered Libraries
+his is an R Markdown document. Markdown i
+
+# Data
+
+```{r,results = "hide"}
+library(sf)
+library(tmap)
+library(leaflet)
+library(ggmap)
+library(dplyr)
+library(stringr)
+library(lubridate)
+library(zoo)
+library(DT)
+
+library(ggplot2)
+library(ggthemes)
+data=read.csv('C:/Users/dsaav/Documents/Projects/R/Datasets/database.csv',header=TRUE,stringsAsFactors = FALSE)
+sum(is.na(data$ZIP.CODE))
+data<-na.omit(data) 
+
+# for visualization
+data1<-data[,-1]
+# For Integration
+data2<-data[,c(5,13:19)]
+
+# Summarize Data
+
+zips_counts<-data2%>%
+  group_by(ZIP.CODE)%>%
+  summarise(no_zips=length(ZIP.CODE))%>%
+  arrange(desc(no_zips))
+
+
+
+
+data2<-setDT(data2)[,lapply(.SD,sum),by=ZIP.CODE,.SDcols=c("PERSONS.KILLED","PEDESTRIANS.INJURED",
+                                                            "PEDESTRIANS.KILLED","CYCLISTS.INJURED",                                                                       "CYCLISTS.KILLED","MOTORISTS.INJURED",                                                                         "MOTORISTS.KILLED")]
+
+
+data2<-merge(zips_counts,data2,by='ZIP.CODE')
+
+```
+
+
+# Visualization
+```{r}
+
+data1$DATE<-parse_date_time(data1$DATE, orders=c("ymd", "dmy", "mdy"))
+
+
+
+data1$Day<- factor(day(data1$DATE))
+data1$Month<-factor(month(data1$DATE))
+data1$DayWeek<-factor(wday(data1$DATE))
+data1$Year<-factor(year(data1$DATE))
+
+# Visualize days
+day_data <- data1 %>%
+  group_by(Day) %>%
+  summarize(Total = n()) 
+
+ggplot(day_data,aes(Day,Total))+geom_bar(stat = 'identity',fill="#00526D")+
+  labs(title="Accidents by Day") + 
+  labs(x="Localidad")+labs(y="Mean Days")+theme_economist() +
+  scale_colour_economist()
+
+month_data <- data1 %>%
+  group_by(Month) %>%
+  summarize(Total = n())
+
+
+dayofweek_data <- data1 %>%
+  group_by(DayWeek) %>%
+  summarize(Total = n()) 
+
+year_data <- data1 %>%
+  group_by(Year) %>%
+  summarize(Total = n()) 
+
+
+month_year_group<-data1 %>%
+  group_by(Year, Month) %>%
+  summarize(Total = n())
+
+
+
+```
+
+
+
+## Zip codes geometrics from US Census
+
+```{r ,results = "hide"}
+
+
+zipsManha<-st_read('C:/Users/dsaav/Documents/Projects/R/Datasets/acs2018_5yr_B01003_86000US10543/acs2018_5yr_B01003_86000US10543.shp')
+zipsManha<-zipsManha[-1,c(1,2,5)]
+
+library(varhandle)
+zipsManha$name<-unfactor(zipsManha$name)
+zipsManha$name<-as.integer(zipsManha$name)
+
+
+#data_sf<-st_as_sf(data, coords=c('LONGITUDE','LATITUDE'),crs=4326,remove =FALSE )
+
+
+
+common_zip<-union(data2$ZIP.CODE,zipsManha$name)
+length(common_zip)==length(data2$ZIP.CODE)
+
+library(tmaptools)
+
+
+data_Integration<-merge(zipsManha,data2, by.x ='name',by.y='ZIP.CODE')
+
+
+
+```
+
+```{r,message = FALSE,warning = FALSE}
+library(tmap)
+library(ggmap)
+qtm(data_Integration,fill = 'no_zips')
+
+#ttm()
+#tmap_last()
+
+```
+
+
+
+
