@@ -72,6 +72,7 @@ library(stringr)
 library(lubridate)
 library(zoo)
 library(DT)
+library(data.table)
 
 library(ggplot2)
 library(ggthemes)
