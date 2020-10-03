@@ -1,0 +1,7 @@
+name: "Projects"
+output_dir: "."
+navbar:
+  title: "Tutorials"
+  html_document:
+    theme: cosmo
+  
