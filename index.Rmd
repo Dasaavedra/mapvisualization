@@ -1,7 +1,7 @@
 ---
-title: "Map Visualization"
+title: "Spatial Data Visualization"
 author: "Armando Saavedra"
-date: "3/23/2018"
+date: "3/23/2020"
 output:
   html_document:
     toc: true
@@ -56,14 +56,17 @@ p{
 
 # Introduction
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown
+The goal of this project is to analyze spatial data summarizing the number of acidents in New york. The objective is to create a heat map where every zip code shows the number of car accidents.
+
+The information base of this analysis comes from a dataset found in Kaggle that provides differents 
+
 
 # Requiered Libraries
 his is an R Markdown document. Markdown i
 
-# Data
 
-```{r,results = "hide"}
+
+```{r,message=FALSE, warning=FALSE,paged.print=TRUE}
 library(sf)
 library(tmap)
 library(leaflet)
@@ -74,12 +77,49 @@ library(lubridate)
 library(zoo)
 library(DT)
 library(data.table)
-
 library(ggplot2)
 library(ggthemes)
-data=read.csv('C:/Users/dsaav/Documents/Projects/R/Datasets/database.csv',header=TRUE,stringsAsFactors = FALSE)
+
+```
+# Data
+
+```{r,results = "hide"}
+data=read.csv('C:/Users/dsaav/Documents/Projects/R/Datasets/database.csv',
+              header=TRUE,stringsAsFactors = FALSE)
 sum(is.na(data$ZIP.CODE))
-data<-na.omit(data) 
+
+```
+
+# Fix Zipcodes
+```{r,results = "hide"}
+library(ggmap)
+
+dset<-data[!complete.cases(data$LATITUDE), ]
+sum(is.na(dset$LATITUDE))
+
+
+library(googleway)
+
+
+key <- "AIzaSyDqZc13hrQ7ELNTxdD3SybCSvVO0uMow90"
+
+res <- apply(dset, 1, function(x){
+  google_reverse_geocode(location = c(x["LATITUDE"], x["LONGITUDE"]),
+                         key = key)})
+
+# can then access zip and neighborhood where populated
+res$postal_code
+res$neighborhood
+
+```
+
+
+```{r,results = "hide"}
+
+
+
+
+# data<-na.omit(data) 
 
 # for visualization
 data1<-data[,-1]
@@ -96,8 +136,8 @@ zips_counts<-data2%>%
 
 
 
-data2<-setDT(data2)[,lapply(.SD,sum),by=ZIP.CODE,.SDcols=c("PERSONS.KILLED","PEDESTRIANS.INJURED",
-                                                            "PEDESTRIANS.KILLED","CYCLISTS.INJURED",                                                                       "CYCLISTS.KILLED","MOTORISTS.INJURED",                                                                         "MOTORISTS.KILLED")]
+data2<-setDT(data2)[,lapply(.SD,sum),
+                    by=ZIP.CODE,.SDcols=c("PERSONS.KILLED","PEDESTRIANS.INJURED",                                                         "PEDESTRIANS.KILLED","CYCLISTS.INJURED",                                                        "CYCLISTS.KILLED","MOTORISTS.INJURED",                                                          "MOTORISTS.KILLED")]
 
 
 data2<-merge(zips_counts,data2,by='ZIP.CODE')
@@ -151,7 +191,7 @@ month_year_group<-data1 %>%
 
 
 
-## Zip codes geometrics from US Census
+# Zip codes geometrics from US Census
 
 ```{r ,results = "hide"}
 
@@ -183,10 +223,12 @@ data_Integration<-merge(zipsManha,data2, by.x ='name',by.y='ZIP.CODE')
 ```{r,message = FALSE,warning = FALSE}
 library(tmap)
 library(ggmap)
-qtm(data_Integration,fill = 'no_zips')
 
-#ttm()
+ttm()
 #tmap_last()
+#qtm(data_Integration,fill = 'no_zips')
+
+tm_shape(data_Integration)+tm_polygons(col = "no_zips", id = "name")
 
 ```
 
